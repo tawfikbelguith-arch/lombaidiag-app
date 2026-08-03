@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -X POST http://localhost:8000/api/segment)",
+      "Bash(curl -s http://localhost:8000/openapi.json)"
+    ]
+  }
+}

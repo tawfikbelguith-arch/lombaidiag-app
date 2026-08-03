@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Plateforme d'aide au diagnostic de la lombalgie</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-icon">🩻</span>
+      <span class="brand-name">LombAI<span class="brand-accent">Diag</span></span>
+    </div>
+    <span class="badge">Prototype de démonstration — non validé cliniquement</span>
+  </header>
+
+  <main class="container">
+
+    <section class="panel upload-panel">
+      <h1>Analyse IRM lombaire</h1>
+      <p class="subtitle">
+        Importez une IRM lombaire (coupe sagittale, PNG/JPG) pour obtenir une segmentation
+        automatique du canal spinal, des vertèbres et des disques intervertébraux,
+        ainsi qu'une estimation de risque pathologique.
+      </p>
+
+      <div class="upload-row">
+        <div class="field">
+          <label for="patientRef">Référence patient</label>
+          <input type="text" id="patientRef" placeholder="ex: P-2026-0007" />
+        </div>
+
+        <div class="field file-field">
+          <label for="fileInput" class="file-label" id="fileLabel">
+            📁 Choisir une image IRM
+          </label>
+          <input type="file" id="fileInput" accept="image/*" hidden />
+        </div>
+
+        <button id="analyzeBtn" class="btn-primary" disabled>Lancer l'analyse</button>
+      </div>
+
+      <div id="previewWrap" class="preview-wrap hidden">
+        <img id="previewImg" alt="Aperçu de l'image importée" />
+        <span id="previewName"></span>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <span>Segmentation en cours (prétraitement → segmentation → incertitude)…</span>
+      </div>
+
+      <div id="errorBox" class="error-box hidden"></div>
+    </section>
+
+    <section id="resultsSection" class="panel results-panel hidden">
+      <h2>Résultats de la segmentation</h2>
+
+      <div class="images-grid">
+        <figure>
+          <img id="imgOriginal" alt="Image originale prétraitée" />
+          <figcaption>IRM prétraitée</figcaption>
+        </figure>
+        <figure>
+          <img id="imgOverlay" alt="Segmentation superposée" />
+          <figcaption>
+            Segmentation
+            <span class="legend">
+              <span class="dot dot-sc"></span>SC
+              <span class="dot dot-vb"></span>VB
+              <span class="dot dot-ivd"></span>IVD
+            </span>
+          </figcaption>
+        </figure>
+        <figure>
+          <img id="imgHeatmap" alt="Carte d'incertitude" />
+          <figcaption>Carte d'incertitude</figcaption>
+        </figure>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="card">
+          <h3>Surfaces relatives des structures</h3>
+          <table id="metricsTable" class="data-table"></table>
+        </div>
+        <div class="card">
+          <h3>Scores de risque pathologique (estimation)</h3>
+          <table id="pathologyTable" class="data-table"></table>
+          <div id="riskBars"></div>
+        </div>
+      </div>
+
+      <div class="actions-row">
+        <button id="downloadReportBtn" class="btn-secondary">📄 Télécharger le rapport PDF</button>
+        <button id="resetBtn" class="btn-ghost">↺ Nouvelle analyse</button>
+      </div>
+
+      <p class="disclaimer" id="disclaimerText"></p>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    Projet de démonstration inspiré de SpineSegDiff (ML4H 2024, ETH Zurich) — architecture pédagogique,
+    aucune valeur médicale.
+  </footer>
+
+<script src="app.js"></script>
+</body>
+</html>
