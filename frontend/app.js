@@ -2,7 +2,7 @@
 // app.js — logique frontend de la plateforme d'aide au diagnostic
 // ============================================================
 
-const API_BASE = window.LOMBAI_API_BASE || "http://localhost:8000";
+const API_BASE = window.LOMBAI_API_BASE || "https://lombaidiag.onrender.com";
 
 let selectedFile = null;
 let currentSessionId = null;

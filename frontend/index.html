@@ -4,7 +4,436 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Plateforme d'aide au diagnostic de la lombalgie</title>
-<link rel="stylesheet" href="style.css" />
+<style>
+/* ============================================================
+   Design tokens — inspiré des visualiseurs radiologiques (PACS) :
+   fond sombre de salle de lecture, accents cyan-scanner, données
+   présentées en monospace façon HUD d'imagerie médicale.
+   ============================================================ */
+:root {
+  --bg: #10141a;
+  --panel: #171d26;
+  --panel-border: #262e3b;
+  --text: #e7ecf3;
+  --text-muted: #8996a8;
+  --accent: #5ecbd8;       /* cyan scanner */
+  --accent-dim: #35606a;
+  --risk: #e8a34c;         /* alerte ambre */
+  --risk-high: #e05a5a;
+  --sc-color: #3f8cff;
+  --vb-color: #4ad187;
+  --ivd-color: #ff5d6c;
+
+  --font-display: "IBM Plex Sans", "Helvetica Neue", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+}
+
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-display);
+  min-height: 100vh;
+}
+
+/* ---------- Topbar ---------- */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--panel-border);
+  background: linear-gradient(180deg, #141a22 0%, #10141a 100%);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.brand-icon { font-size: 20px; }
+.brand-accent { color: var(--accent); }
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--risk);
+  border: 1px solid rgba(232, 163, 76, 0.4);
+  background: rgba(232, 163, 76, 0.08);
+  padding: 5px 10px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* ---------- Layout ---------- */
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 36px 24px 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 28px 30px;
+}
+
+h1 {
+  font-size: 26px;
+  margin: 0 0 8px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 19px;
+  margin: 0 0 20px;
+  font-weight: 600;
+  border-left: 3px solid var(--accent);
+  padding-left: 10px;
+}
+h3 {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 14.5px;
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0 0 24px;
+}
+
+/* ---------- Upload row ---------- */
+.upload-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="tel"] {
+  background: #0d1116;
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  min-width: 200px;
+  width: 100%;
+}
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.field-note {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.file-label {
+  cursor: pointer;
+  background: #0d1116;
+  border: 1px dashed var(--panel-border);
+  color: var(--text-muted);
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 13.5px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+  display: inline-block;
+}
+.file-label:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.file-label:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 4px;
+  padding: 11px 20px;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #06232a;
+}
+.btn-primary:not(:disabled):hover { transform: translateY(-1px); }
+
+.btn-secondary {
+  background: #1f2733;
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+}
+.btn-ghost:hover { color: var(--text); }
+
+/* ---------- Preview ---------- */
+.preview-wrap {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.preview-wrap img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--panel-border);
+}
+.preview-wrap span {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+.hidden { display: none !important; }
+
+/* ---------- Loading (scan sweep signature element) ---------- */
+.loading {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--accent);
+}
+.spinner {
+  width: 34px;
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--accent-dim);
+  position: relative;
+  overflow: hidden;
+  background: #0a1418;
+}
+.spinner::after {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: sweep 1.1s linear infinite;
+}
+@keyframes sweep {
+  from { left: -30%; }
+  to { left: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner::after { animation: none; left: 35%; }
+}
+
+.error-box {
+  margin-top: 18px;
+  background: rgba(224, 90, 90, 0.1);
+  border: 1px solid rgba(224, 90, 90, 0.4);
+  color: #ffb3b3;
+  padding: 12px 14px;
+  border-radius: 4px;
+  font-size: 13.5px;
+  font-family: var(--font-mono);
+}
+
+/* ---------- Results: image grid with viewfinder corners ---------- */
+.images-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 30px;
+}
+.images-grid figure {
+  margin: 0;
+  background: #0a0e13;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 10px;
+  position: relative;
+}
+.images-grid img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
+  background: #000;
+  border-radius: 2px;
+}
+/* corner brackets — signature scanner motif */
+.images-grid figure::before,
+.images-grid figure::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-color: var(--accent-dim);
+  border-style: solid;
+}
+.images-grid figure::before {
+  top: 6px; left: 6px;
+  border-width: 1.5px 0 0 1.5px;
+}
+.images-grid figure::after {
+  bottom: 6px; right: 6px;
+  border-width: 0 1.5px 1.5px 0;
+}
+
+figcaption {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.legend { display: flex; gap: 8px; align-items: center; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 2px; }
+.dot-sc { background: var(--sc-color); }
+.dot-vb { background: var(--vb-color); }
+.dot-ivd { background: var(--ivd-color); }
+
+/* ---------- Metrics ---------- */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+.card {
+  background: #0d1218;
+  border: 1px solid var(--panel-border);
+  border-radius: 5px;
+  padding: 18px 20px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.data-table td {
+  padding: 7px 4px;
+  border-bottom: 1px solid var(--panel-border);
+  color: var(--text);
+}
+.data-table td:first-child { color: var(--text-muted); }
+.data-table td:last-child { text-align: right; font-weight: 600; }
+
+#riskBars { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.risk-row { display: flex; flex-direction: column; gap: 4px; }
+.risk-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+}
+.risk-track {
+  height: 6px;
+  border-radius: 3px;
+  background: #1c232d;
+  overflow: hidden;
+}
+.risk-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+}
+.risk-fill.high { background: var(--risk-high); }
+.risk-fill.medium { background: var(--risk); }
+
+/* ---------- Actions & disclaimer ---------- */
+.actions-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.disclaimer {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--risk);
+  line-height: 1.6;
+  border-top: 1px solid var(--panel-border);
+  padding-top: 14px;
+  margin: 0;
+}
+
+.footer {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  padding: 20px;
+  font-family: var(--font-mono);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 720px) {
+  .images-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: 1fr; }
+  .upload-row { flex-direction: column; align-items: stretch; }
+}
+</style>
 </head>
 <body>
 
@@ -123,6 +552,270 @@
     aucune valeur médicale.
   </footer>
 
-<script src="app.js"></script>
+<script>
+// ============================================================
+// app.js — logique frontend de la plateforme d'aide au diagnostic
+// ============================================================
+
+const API_BASE = window.LOMBAI_API_BASE || "https://lombaidiag-app.onrender.com";
+
+let selectedFile = null;
+let currentSessionId = null;
+
+// Éléments DOM
+let fileInput, fileLabel, patientRefInput, analyzeBtn, previewWrap, previewImg, previewName, loadingBox, errorBox, resultsSection, downloadReportBtn, resetBtn;
+let clientNameInput, clientEmailInput, clientPhoneInput;
+
+// Initialiser quand le DOM est prêt
+document.addEventListener("DOMContentLoaded", () => {
+  // Récupérer les références aux éléments DOM
+  fileInput = document.getElementById("fileInput");
+  fileLabel = document.getElementById("fileLabel");
+  patientRefInput = document.getElementById("patientRef");
+  clientNameInput = document.getElementById("clientName");
+  clientEmailInput = document.getElementById("clientEmail");
+  clientPhoneInput = document.getElementById("clientPhone");
+  analyzeBtn = document.getElementById("analyzeBtn");
+  previewWrap = document.getElementById("previewWrap");
+  previewImg = document.getElementById("previewImg");
+  previewName = document.getElementById("previewName");
+  loadingBox = document.getElementById("loading");
+  errorBox = document.getElementById("errorBox");
+  resultsSection = document.getElementById("resultsSection");
+  downloadReportBtn = document.getElementById("downloadReportBtn");
+  resetBtn = document.getElementById("resetBtn");
+
+  // Vérifier que tous les éléments critiques existent
+  if (!fileInput || !analyzeBtn || !downloadReportBtn || !resetBtn) {
+    console.error("Erreur : éléments HTML critiques manquants", {
+      fileInput: !!fileInput,
+      analyzeBtn: !!analyzeBtn,
+      downloadReportBtn: !!downloadReportBtn,
+      resetBtn: !!resetBtn,
+    });
+    return;
+  }
+
+  // Ajouter les event listeners
+  fileInput.addEventListener("change", handleFileChange);
+  analyzeBtn.addEventListener("click", handleAnalyze);
+  downloadReportBtn.addEventListener("click", handleDownloadReport);
+  resetBtn.addEventListener("click", handleReset);
+});
+
+function handleFileChange() {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  selectedFile = file;
+  analyzeBtn.disabled = false;
+  fileLabel.textContent = "📁 " + file.name;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewName.textContent = `${file.name} — ${(file.size / 1024).toFixed(0)} Ko`;
+    previewWrap.classList.remove("hidden");
+  };
+  reader.readAsDataURL(file);
+
+  hideError();
+}
+
+async function handleAnalyze() {
+  if (!selectedFile) return;
+
+  hideError();
+  setLoading(true);
+  resultsSection.classList.add("hidden");
+
+  try {
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("patient_ref", patientRefInput ? patientRefInput.value || "ANONYME" : "ANONYME");
+    formData.append("client_name", clientNameInput ? clientNameInput.value || "" : "");
+    formData.append("client_email", clientEmailInput ? clientEmailInput.value || "" : "");
+    formData.append("client_phone", clientPhoneInput ? clientPhoneInput.value || "" : "");
+
+    const response = await fetch(`${API_BASE}/api/segment`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.detail || `Erreur serveur (${response.status})`);
+    }
+
+    const data = await response.json();
+    currentSessionId = data.session_id;
+    renderResults(data);
+  } catch (err) {
+    showError(
+      "Échec de l'analyse : " +
+        err.message +
+        ". Vérifiez que le backend est lancé (voir README, uvicorn sur " +
+        API_BASE +
+        ")."
+    );
+  } finally {
+    setLoading(false);
+  }
+}
+
+async function handleDownloadReport() {
+  if (!currentSessionId) {
+    showError("Aucune session active. Veuillez d'abord lancer une analyse.");
+    return;
+  }
+
+  const nom = clientNameInput && clientNameInput.value ? clientNameInput.value : "Anonyme";
+  const email = clientEmailInput && clientEmailInput.value ? clientEmailInput.value : "";
+  const whatsapp = clientPhoneInput && clientPhoneInput.value ? clientPhoneInput.value : "";
+
+  try {
+    const response = await fetch(`${API_BASE}/api/report`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: currentSessionId,
+        nom_patient: nom,
+        email: email,
+        whatsapp: whatsapp,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Impossible de générer le rapport.");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "rapport_lombalgie.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    showError("Échec du téléchargement du rapport : " + err.message);
+  }
+}
+
+function handleReset() {
+  selectedFile = null;
+  currentSessionId = null;
+  if (fileInput) fileInput.value = "";
+  if (fileLabel) fileLabel.textContent = "📁 Choisir une image IRM";
+  if (previewWrap) previewWrap.classList.add("hidden");
+  if (resultsSection) resultsSection.classList.add("hidden");
+  if (analyzeBtn) analyzeBtn.disabled = true;
+  if (patientRefInput) patientRefInput.value = "";
+  if (clientNameInput) clientNameInput.value = "";
+  if (clientEmailInput) clientEmailInput.value = "";
+  if (clientPhoneInput) clientPhoneInput.value = "";
+  hideError();
+}
+
+function setLoading(isLoading) {
+  if (!loadingBox || !analyzeBtn) return;
+  loadingBox.classList.toggle("hidden", !isLoading);
+  analyzeBtn.disabled = isLoading || !selectedFile;
+}
+
+function showError(message) {
+  if (!errorBox) return;
+  errorBox.textContent = message;
+  errorBox.classList.remove("hidden");
+}
+
+function hideError() {
+  if (!errorBox) return;
+  errorBox.classList.add("hidden");
+  errorBox.textContent = "";
+}
+
+function riskLevelClass(value) {
+  if (value >= 0.66) return "high";
+  if (value >= 0.33) return "medium";
+  return "";
+}
+
+function renderResults(data) {
+  // Vérifier que tous les éléments existent
+  const imgOriginal = document.getElementById("imgOriginal");
+  const imgOverlay = document.getElementById("imgOverlay");
+  const imgHeatmap = document.getElementById("imgHeatmap");
+  const metricsTable = document.getElementById("metricsTable");
+  const pathologyTable = document.getElementById("pathologyTable");
+  const riskBars = document.getElementById("riskBars");
+  const disclaimerText = document.getElementById("disclaimerText");
+
+  if (!imgOriginal || !metricsTable) {
+    showError("Erreur : éléments de résultats manquants dans le HTML");
+    return;
+  }
+
+  if (imgOriginal) imgOriginal.src = data.original_image;
+  if (imgOverlay) imgOverlay.src = data.overlay_image;
+  if (imgHeatmap) imgHeatmap.src = data.uncertainty_heatmap;
+
+  // Tableau des métriques de segmentation
+  const metricsLabels = {
+    sc_area_ratio: "Surface canal spinal (ratio image)",
+    vb_area_ratio: "Surface vertèbres (ratio image)",
+    ivd_area_ratio: "Surface disques (ratio image)",
+    mean_uncertainty: "Incertitude moyenne",
+  };
+
+  metricsTable.innerHTML = Object.entries(data.metrics)
+    .map(
+      ([key, value]) =>
+        `<tr><td>${metricsLabels[key] || key}</td><td>${value}</td></tr>`
+    )
+    .join("");
+
+  // Tableau + barres de risque pathologique
+  const pathologyLabels = {
+    disc_narrowing_risk: "Rétrécissement discal",
+    spondylolisthesis_risk: "Spondylolisthésis",
+    overall_confidence: "Confiance globale du modèle",
+  };
+
+  if (pathologyTable) {
+    pathologyTable.innerHTML = Object.entries(data.pathology_scores)
+      .map(
+        ([key, value]) =>
+          `<tr><td>${pathologyLabels[key] || key}</td><td>${value}</td></tr>`
+      )
+      .join("");
+  }
+
+  if (riskBars) {
+    riskBars.innerHTML = Object.entries(data.pathology_scores)
+      .filter(([key]) => key !== "overall_confidence")
+      .map(([key, value]) => {
+        const pct = Math.round(value * 100);
+        const cls = riskLevelClass(value);
+        return `
+          <div class="risk-row">
+            <div class="risk-label"><span>${pathologyLabels[key] || key}</span><span>${pct}%</span></div>
+            <div class="risk-track"><div class="risk-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>`;
+      })
+      .join("");
+  }
+
+  if (disclaimerText) {
+    disclaimerText.textContent = "⚠ " + data.disclaimer;
+  }
+
+  if (resultsSection) {
+    resultsSection.classList.remove("hidden");
+    resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+</script>
 </body>
 </html>
