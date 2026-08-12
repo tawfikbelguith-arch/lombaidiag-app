@@ -4,23 +4,51 @@
 
 const API_BASE = window.LOMBAI_API_BASE || "http://localhost:8000";
 
-const fileInput = document.getElementById("fileInput");
-const fileLabel = document.getElementById("fileLabel");
-const patientRefInput = document.getElementById("patientRef");
-const analyzeBtn = document.getElementById("analyzeBtn");
-const previewWrap = document.getElementById("previewWrap");
-const previewImg = document.getElementById("previewImg");
-const previewName = document.getElementById("previewName");
-const loadingBox = document.getElementById("loading");
-const errorBox = document.getElementById("errorBox");
-const resultsSection = document.getElementById("resultsSection");
-const downloadReportBtn = document.getElementById("downloadReportBtn");
-const resetBtn = document.getElementById("resetBtn");
-
 let selectedFile = null;
 let currentSessionId = null;
 
-fileInput.addEventListener("change", () => {
+// Éléments DOM
+let fileInput, fileLabel, patientRefInput, analyzeBtn, previewWrap, previewImg, previewName, loadingBox, errorBox, resultsSection, downloadReportBtn, resetBtn;
+let clientNameInput, clientEmailInput, clientPhoneInput;
+
+// Initialiser quand le DOM est prêt
+document.addEventListener("DOMContentLoaded", () => {
+  // Récupérer les références aux éléments DOM
+  fileInput = document.getElementById("fileInput");
+  fileLabel = document.getElementById("fileLabel");
+  patientRefInput = document.getElementById("patientRef");
+  clientNameInput = document.getElementById("clientName");
+  clientEmailInput = document.getElementById("clientEmail");
+  clientPhoneInput = document.getElementById("clientPhone");
+  analyzeBtn = document.getElementById("analyzeBtn");
+  previewWrap = document.getElementById("previewWrap");
+  previewImg = document.getElementById("previewImg");
+  previewName = document.getElementById("previewName");
+  loadingBox = document.getElementById("loading");
+  errorBox = document.getElementById("errorBox");
+  resultsSection = document.getElementById("resultsSection");
+  downloadReportBtn = document.getElementById("downloadReportBtn");
+  resetBtn = document.getElementById("resetBtn");
+
+  // Vérifier que tous les éléments critiques existent
+  if (!fileInput || !analyzeBtn || !downloadReportBtn || !resetBtn) {
+    console.error("Erreur : éléments HTML critiques manquants", {
+      fileInput: !!fileInput,
+      analyzeBtn: !!analyzeBtn,
+      downloadReportBtn: !!downloadReportBtn,
+      resetBtn: !!resetBtn,
+    });
+    return;
+  }
+
+  // Ajouter les event listeners
+  fileInput.addEventListener("change", handleFileChange);
+  analyzeBtn.addEventListener("click", handleAnalyze);
+  downloadReportBtn.addEventListener("click", handleDownloadReport);
+  resetBtn.addEventListener("click", handleReset);
+});
+
+function handleFileChange() {
   const file = fileInput.files[0];
   if (!file) return;
 
@@ -37,9 +65,9 @@ fileInput.addEventListener("change", () => {
   reader.readAsDataURL(file);
 
   hideError();
-});
+}
 
-analyzeBtn.addEventListener("click", async () => {
+async function handleAnalyze() {
   if (!selectedFile) return;
 
   hideError();
@@ -49,7 +77,10 @@ analyzeBtn.addEventListener("click", async () => {
   try {
     const formData = new FormData();
     formData.append("file", selectedFile);
-    formData.append("patient_ref", patientRefInput.value || "ANONYME");
+    formData.append("patient_ref", patientRefInput ? patientRefInput.value || "ANONYME" : "ANONYME");
+    formData.append("client_name", clientNameInput ? clientNameInput.value || "" : "");
+    formData.append("client_email", clientEmailInput ? clientEmailInput.value || "" : "");
+    formData.append("client_phone", clientPhoneInput ? clientPhoneInput.value || "" : "");
 
     const response = await fetch(`${API_BASE}/api/segment`, {
       method: "POST",
@@ -75,17 +106,33 @@ analyzeBtn.addEventListener("click", async () => {
   } finally {
     setLoading(false);
   }
-});
+}
 
-downloadReportBtn.addEventListener("click", async () => {
-  if (!currentSessionId) return;
+async function handleDownloadReport() {
+  if (!currentSessionId) {
+    showError("Aucune session active. Veuillez d'abord lancer une analyse.");
+    return;
+  }
+
+  const nom = clientNameInput && clientNameInput.value ? clientNameInput.value : "Anonyme";
+  const email = clientEmailInput && clientEmailInput.value ? clientEmailInput.value : "";
+  const whatsapp = clientPhoneInput && clientPhoneInput.value ? clientPhoneInput.value : "";
+
   try {
     const response = await fetch(`${API_BASE}/api/report`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id: currentSessionId }),
+      body: JSON.stringify({
+        session_id: currentSessionId,
+        nom_patient: nom,
+        email: email,
+        whatsapp: whatsapp,
+      }),
     });
-    if (!response.ok) throw new Error("Impossible de générer le rapport.");
+
+    if (!response.ok) {
+      throw new Error("Impossible de générer le rapport.");
+    }
 
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
@@ -99,30 +146,37 @@ downloadReportBtn.addEventListener("click", async () => {
   } catch (err) {
     showError("Échec du téléchargement du rapport : " + err.message);
   }
-});
+}
 
-resetBtn.addEventListener("click", () => {
+function handleReset() {
   selectedFile = null;
   currentSessionId = null;
-  fileInput.value = "";
-  fileLabel.textContent = "📁 Choisir une image IRM";
-  previewWrap.classList.add("hidden");
-  resultsSection.classList.add("hidden");
-  analyzeBtn.disabled = true;
-  patientRefInput.value = "";
+  if (fileInput) fileInput.value = "";
+  if (fileLabel) fileLabel.textContent = "📁 Choisir une image IRM";
+  if (previewWrap) previewWrap.classList.add("hidden");
+  if (resultsSection) resultsSection.classList.add("hidden");
+  if (analyzeBtn) analyzeBtn.disabled = true;
+  if (patientRefInput) patientRefInput.value = "";
+  if (clientNameInput) clientNameInput.value = "";
+  if (clientEmailInput) clientEmailInput.value = "";
+  if (clientPhoneInput) clientPhoneInput.value = "";
   hideError();
-});
+}
 
 function setLoading(isLoading) {
+  if (!loadingBox || !analyzeBtn) return;
   loadingBox.classList.toggle("hidden", !isLoading);
   analyzeBtn.disabled = isLoading || !selectedFile;
 }
 
 function showError(message) {
+  if (!errorBox) return;
   errorBox.textContent = message;
   errorBox.classList.remove("hidden");
 }
+
 function hideError() {
+  if (!errorBox) return;
   errorBox.classList.add("hidden");
   errorBox.textContent = "";
 }
@@ -134,9 +188,23 @@ function riskLevelClass(value) {
 }
 
 function renderResults(data) {
-  document.getElementById("imgOriginal").src = data.original_image;
-  document.getElementById("imgOverlay").src = data.overlay_image;
-  document.getElementById("imgHeatmap").src = data.uncertainty_heatmap;
+  // Vérifier que tous les éléments existent
+  const imgOriginal = document.getElementById("imgOriginal");
+  const imgOverlay = document.getElementById("imgOverlay");
+  const imgHeatmap = document.getElementById("imgHeatmap");
+  const metricsTable = document.getElementById("metricsTable");
+  const pathologyTable = document.getElementById("pathologyTable");
+  const riskBars = document.getElementById("riskBars");
+  const disclaimerText = document.getElementById("disclaimerText");
+
+  if (!imgOriginal || !metricsTable) {
+    showError("Erreur : éléments de résultats manquants dans le HTML");
+    return;
+  }
+
+  if (imgOriginal) imgOriginal.src = data.original_image;
+  if (imgOverlay) imgOverlay.src = data.overlay_image;
+  if (imgHeatmap) imgHeatmap.src = data.uncertainty_heatmap;
 
   // Tableau des métriques de segmentation
   const metricsLabels = {
@@ -145,7 +213,7 @@ function renderResults(data) {
     ivd_area_ratio: "Surface disques (ratio image)",
     mean_uncertainty: "Incertitude moyenne",
   };
-  const metricsTable = document.getElementById("metricsTable");
+
   metricsTable.innerHTML = Object.entries(data.metrics)
     .map(
       ([key, value]) =>
@@ -159,31 +227,38 @@ function renderResults(data) {
     spondylolisthesis_risk: "Spondylolisthésis",
     overall_confidence: "Confiance globale du modèle",
   };
-  const pathologyTable = document.getElementById("pathologyTable");
-  pathologyTable.innerHTML = Object.entries(data.pathology_scores)
-    .map(
-      ([key, value]) =>
-        `<tr><td>${pathologyLabels[key] || key}</td><td>${value}</td></tr>`
-    )
-    .join("");
 
-  const riskBars = document.getElementById("riskBars");
-  riskBars.innerHTML = Object.entries(data.pathology_scores)
-    .filter(([key]) => key !== "overall_confidence")
-    .map(([key, value]) => {
-      const pct = Math.round(value * 100);
-      const cls = riskLevelClass(value);
-      return `
-        <div class="risk-row">
-          <div class="risk-label"><span>${pathologyLabels[key] || key}</span><span>${pct}%</span></div>
-          <div class="risk-track"><div class="risk-fill ${cls}" style="width:${pct}%"></div></div>
-        </div>`;
-    })
-    .join("");
+  if (pathologyTable) {
+    pathologyTable.innerHTML = Object.entries(data.pathology_scores)
+      .map(
+        ([key, value]) =>
+          `<tr><td>${pathologyLabels[key] || key}</td><td>${value}</td></tr>`
+      )
+      .join("");
+  }
 
-  document.getElementById("disclaimerText").textContent =
-    "⚠ " + data.disclaimer;
+  if (riskBars) {
+    riskBars.innerHTML = Object.entries(data.pathology_scores)
+      .filter(([key]) => key !== "overall_confidence")
+      .map(([key, value]) => {
+        const pct = Math.round(value * 100);
+        const cls = riskLevelClass(value);
+        return `
+          <div class="risk-row">
+            <div class="risk-label"><span>${pathologyLabels[key] || key}</span><span>${pct}%</span></div>
+            <div class="risk-track"><div class="risk-fill ${cls}" style="width:${pct}%"></div></div>
+          </div>`;
+      })
+      .join("");
+  }
 
-  resultsSection.classList.remove("hidden");
-  resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (disclaimerText) {
+    disclaimerText.textContent = "⚠ " + data.disclaimer;
+  }
+
+  if (resultsSection) {
+    resultsSection.classList.remove("hidden");
+    resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
+

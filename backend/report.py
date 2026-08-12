@@ -20,9 +20,14 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
+from sheets import save_analysis
+
 
 def generate_pdf_report(
     patient_ref: str,
+    client_name: str,
+    client_email: str,
+    client_phone: str,
     original_png_bytes: bytes,
     overlay_png_bytes: bytes,
     heatmap_png_bytes: bytes,
@@ -123,6 +128,14 @@ def generate_pdf_report(
             "(marquage CE / FDA) avant tout usage réel.",
             disclaimer_style,
         )
+    )
+
+    # Enregistrer l'analyse dans Google Sheets
+    save_analysis(
+        nom_patient=client_name or patient_ref,
+        rapport=f"Analyse IRM lombaire - {datetime.now().strftime('%d/%m/%Y %H:%M')}",
+        email=client_email or None,
+        whatsapp=client_phone or None,
     )
 
     doc.build(elements)

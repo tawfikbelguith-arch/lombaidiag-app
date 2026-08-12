@@ -136,7 +136,9 @@ h3 {
   letter-spacing: 0.05em;
 }
 
-input[type="text"] {
+input[type="text"],
+input[type="email"],
+input[type="tel"] {
   background: #0d1116;
   border: 1px solid var(--panel-border);
   color: var(--text);
@@ -145,10 +147,21 @@ input[type="text"] {
   font-family: var(--font-mono);
   font-size: 13.5px;
   min-width: 200px;
+  width: 100%;
 }
-input[type="text"]:focus {
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
+}
+
+.field-note {
+  margin: 4px 0 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .file-label {

@@ -21,8 +21,8 @@
     <section class="panel upload-panel">
       <h1>Analyse IRM lombaire</h1>
       <p class="subtitle">
-        Importez une IRM lombaire (coupe sagittale, PNG/JPG) pour obtenir une segmentation
-        automatique du canal spinal, des vertèbres et des disques intervertébraux,
+        Importez une IRM lombaire (coupe sagittale, PNG/JPG ou fichiers médicaux MHA/MHD si disponibles)
+        pour obtenir une segmentation automatique du canal spinal, des vertèbres et des disques intervertébraux,
         ainsi qu'une estimation de risque pathologique.
       </p>
 
@@ -30,6 +30,22 @@
         <div class="field">
           <label for="patientRef">Référence patient</label>
           <input type="text" id="patientRef" placeholder="ex: P-2026-0007" />
+        </div>
+
+        <div class="field">
+          <label for="clientName">Nom du client</label>
+          <input type="text" id="clientName" placeholder="Votre nom" />
+        </div>
+
+        <div class="field">
+          <label for="clientEmail">Email (si disponible)</label>
+          <input type="email" id="clientEmail" placeholder="email@example.com" />
+        </div>
+
+        <div class="field">
+          <label for="clientPhone">WhatsApp / Téléphone</label>
+          <input type="tel" id="clientPhone" placeholder="+33 6 12 34 56 78" />
+          <p class="field-note">Saisissez un email si vous en avez un, sinon votre numéro WhatsApp.</p>
         </div>
 
         <div class="field file-field">

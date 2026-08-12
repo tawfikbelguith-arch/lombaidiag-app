@@ -1,8 +1,9 @@
 fastapi
 uvicorn
 python-multipart
-gspread
-google-auth
 opencv-python-headless
 numpy
 reportlab
+SimpleITK
+gspread==6.1.2
+google-auth==2.32.0
