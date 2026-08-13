@@ -50,7 +50,13 @@ SESSIONS: dict = {}
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://lombaidiag.netlify.app"],
+    allow_origins=[
+        "http://localhost:3000",      # Frontend Vite/dev local
+        "http://localhost:5173",      # Frontend Vite port alternatif
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "https://lombaidiag.netlify.app",  # Frontend production Netlify
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )

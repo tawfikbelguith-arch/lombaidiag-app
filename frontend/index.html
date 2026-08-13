@@ -557,7 +557,17 @@ figcaption {
 // app.js — logique frontend de la plateforme d'aide au diagnostic
 // ============================================================
 
-const API_BASE = window.LOMBAI_API_BASE || "https://lombaidiag-app.onrender.com";
+// Détecte automatiquement le backend en fonction de l'environnement
+let API_BASE;
+if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+  // Mode développement : utiliser le backend local
+  API_BASE = "http://localhost:8000";
+} else {
+  // Mode production : utiliser le backend Render
+  API_BASE = window.LOMBAI_API_BASE || "https://lombaidiag-app.onrender.com";
+}
+
+console.log("API Backend:", API_BASE);
 
 let selectedFile = null;
 let currentSessionId = null;
